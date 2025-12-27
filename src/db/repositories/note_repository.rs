@@ -19,6 +19,40 @@ impl NoteRepository {
     pub fn new(conn: Rc<RefCell<Connection>>) -> Self {
         NoteRepository { conn }
     }
+
+    pub fn get_by_student(&self, student_matricule: &str) -> rusqlite::Result<Vec<Note>> {
+        let conn = self.conn.borrow();
+        let mut stmt = conn.prepare(
+            "SELECT id, matricule, subject_code, value FROM note WHERE matricule = ?1"
+        )?;
+        let notes = stmt.query_map([student_matricule], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                matricule: row.get(1)?,
+                subject_code: row.get(2)?,
+                value: row.get(3)?,
+            })
+        })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(notes)
+    }
+
+    pub fn get_by_subject(&self, subject_code: &str) -> rusqlite::Result<Vec<Note>> {
+        let conn = self.conn.borrow();
+
+        let mut stmt = conn.prepare(
+            "SELECT id, matricule, subject_code, value FROM note WHERE subject_code = ?1"
+        )?;
+        let notes = stmt.query_map([subject_code], |row| {
+            Ok(Note {
+                id: row.get(0)?,
+                matricule: row.get(1)?,
+                subject_code: row.get(2)?,
+                value: row.get(3)?,
+            })
+        })?.collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(notes)
+    }
 }
 
 impl  Repository<Note> for NoteRepository {
