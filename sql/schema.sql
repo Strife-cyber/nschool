@@ -46,3 +46,9 @@ CREATE TABLE notes (
     FOREIGN KEY (matricule) REFERENCES students(matricule),
     FOREIGN KEY (subject_code) REFERENCES subjects(code)
 );
+
+CREATE TABLE admins (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    login           VARCHAR(25) NOT NULL,
+    password        VARCHAR(25) NOT NULL
+);

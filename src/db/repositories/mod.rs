@@ -1,4 +1,5 @@
-mod repository;
-mod student_repository;
-mod subject_repository;
-mod note_repository;
+pub mod repository;
+pub mod student_repository;
+pub mod subject_repository;
+pub mod note_repository;
+pub mod admin_repository;

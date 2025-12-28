@@ -23,7 +23,7 @@ impl NoteRepository {
     pub fn get_by_student(&self, student_matricule: &str) -> rusqlite::Result<Vec<Note>> {
         let conn = self.conn.borrow();
         let mut stmt = conn.prepare(
-            "SELECT id, matricule, subject_code, value FROM note WHERE matricule = ?1"
+            "SELECT id, matricule, subject_code, value FROM notes WHERE matricule = ?1"
         )?;
         let notes = stmt.query_map([student_matricule], |row| {
             Ok(Note {
@@ -41,7 +41,7 @@ impl NoteRepository {
         let conn = self.conn.borrow();
 
         let mut stmt = conn.prepare(
-            "SELECT id, matricule, subject_code, value FROM note WHERE subject_code = ?1"
+            "SELECT id, matricule, subject_code, value FROM notes WHERE subject_code = ?1"
         )?;
         let notes = stmt.query_map([subject_code], |row| {
             Ok(Note {

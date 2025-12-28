@@ -21,6 +21,7 @@ pub fn run_migrations(conn: Rc<RefCell<Connection>>, migrations: Vec<&str>) -> R
         table_exists(&conn_ref, "students")? 
             && table_exists(&conn_ref, "subjects")? 
             && table_exists(&conn_ref, "notes")?
+            && table_exists(&conn_ref, "admins")?
     };
 
     if tables_exist {

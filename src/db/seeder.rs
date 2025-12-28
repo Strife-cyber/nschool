@@ -111,3 +111,30 @@ pub fn run_seeder(
     Ok(())
 }
 
+/// Exécute un script de seeding sans vérifier si des données existent déjà
+/// Utile pour s'assurer que certaines données (comme les admins) sont toujours présentes
+pub fn run_seeder_force(
+    conn: Rc<RefCell<Connection>>,
+    seeder_script: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Vérifier le nombre d'admins existants
+    let admin_count = {
+        let conn_ref = conn.borrow();
+        conn_ref.query_row(
+            "SELECT COUNT(*) FROM admins",
+            [],
+            |row| row.get::<_, i64>(0),
+        ).unwrap_or(0)
+    };
+
+    // Si on a déjà 10 admins ou plus, ne pas exécuter le seeder
+    if admin_count >= 10 {
+        return Ok(());
+    }
+
+    // Exécuter le script de seeding
+    execute_seeder_script(conn, seeder_script)?;
+
+    Ok(())
+}
+

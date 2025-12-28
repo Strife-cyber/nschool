@@ -1,94 +1,55 @@
 mod db;
-mod ui;
+mod app;
+mod auth;
+mod cli;
+mod views;
 
-use eframe::egui;
+use std::io;
 use crate::db::init_database;
-use crate::ui::page::PageLayout;
-use crate::ui::navigation::{NavigationManager, Navigation};
+use crate::app::App;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _conn = init_database("database/nschool.sqlite")?;
+    println!("=======================================");
+    println!("🎓 Nschool - Student Management System");
+    println!("=======================================\n");
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([900.0, 500.0])
-            .with_title("Nschool - Student Management"),
-        ..Default::default()
-    };
+    // Initialize database
+    let conn = init_database("database/nschool.sqlite")?;
+    println!("✓ Base de données initialisée\n");
 
-    eframe::run_native(
-        "Nschool - Student Management",
-        options,
-        Box::new(|_cc| Ok(Box::<Nschool>::default())),
-    )?;
+    // Create app instance
+    let mut app = App::new(conn);
+
+    // Main application loop
+    loop {
+        if !app.is_authenticated() {
+            // Login required
+            match auth::login_attempt(&mut app) {
+                Ok(true) => continue, // Login successful, show menu
+                Ok(false) => continue, // Login failed, try again
+                Err(e) => {
+                    eprintln!("Erreur: {}", e);
+                    continue;
+                }
+            }
+        } else {
+            // Show main menu
+            cli::show_main_menu();
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let choice = input.trim();
+
+            match cli::handle_main_command(&mut app, choice) {
+                Ok(true) => continue, // Continue loop
+                Ok(false) => break,    // Exit application
+                Err(e) => {
+                    eprintln!("\n✗ Erreur: {}\n", e);
+                    continue;
+                }
+            }
+        }
+    }
 
     Ok(())
-}
-
-#[derive(Default)]
-struct Nschool {
-    navigation: NavigationManager,
-}
-
-impl eframe::App for Nschool {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Global background
-        egui::CentralPanel::default()
-            .frame(
-                egui::Frame::new()
-                    .fill(egui::Color32::from_rgb(18, 18, 22)),
-            )
-            .show(ctx, |ui| {
-                match self.navigation.current_layout() {
-                    PageLayout::Fullscreen => {
-                        // Fullscreen pages (e.g., Landing)
-                        self.navigation.show_current(ctx, ui);
-                    }
-                    PageLayout::WithNavigation => {
-                        // Pages with left navigation
-                        ui.horizontal(|ui| {
-                            // LEFT NAV PANEL
-                            egui::Frame::new()
-                                .fill(egui::Color32::from_rgb(30, 30, 38))
-                                .corner_radius(egui::CornerRadius::same(12))
-                                .inner_margin(egui::Margin::same(16))
-                                .show(ui, |ui| {
-                                    ui.set_min_width(250.0);
-
-                                    ui.heading("📁 Navigation");
-                                    ui.separator();
-
-                                    // Navigation buttons
-                                    for page in Navigation::all() {
-                                        let is_current = self.navigation.current() == *page;
-
-                                        let button = egui::Button::new(page.name())
-                                            .fill(if is_current {
-                                                egui::Color32::from_rgb(60, 60, 80)
-                                            } else {
-                                                egui::Color32::TRANSPARENT
-                                            });
-
-                                        if ui.add(button).clicked() {
-                                            self.navigation.navigate_to(*page);
-                                        }
-                                    }
-                                });
-
-                            // VISUAL SEPARATOR
-                            ui.add_space(16.0);
-
-                            // MAIN CONTENT PANEL
-                            egui::Frame::new()
-                                .fill(egui::Color32::from_rgb(40, 40, 55))
-                                .corner_radius(egui::CornerRadius::same(16))
-                                .inner_margin(egui::Margin::same(20))
-                                .show(ui, |ui| {
-                                    self.navigation.show_current(ctx, ui);
-                                });
-                        });
-                    }
-                }
-            });
-    }
 }
