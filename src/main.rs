@@ -3,7 +3,8 @@ mod ui;
 
 use eframe::egui;
 use crate::db::init_database;
-use crate::ui::navigation::{Navigation, NavigationManager};
+use crate::ui::page::PageLayout;
+use crate::ui::navigation::{NavigationManager, Navigation};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _conn = init_database("database/nschool.sqlite")?;
@@ -31,63 +32,62 @@ struct Nschool {
 
 impl eframe::App for Nschool {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Fond d'écran global
+        // Global background
         egui::CentralPanel::default()
             .frame(
-                egui::Frame::NONE
+                egui::Frame::new()
                     .fill(egui::Color32::from_rgb(18, 18, 22)),
             )
             .show(ctx, |ui| {
-                let current_page = self.navigation.current_page();
-                
-                // Si on est sur la page d'accueil, afficher directement la page (sans navigation)
-                if current_page == Navigation::Landing {
-                    self.navigation.show_current_page(ctx, ui);
-                } else {
-                    // Pour les autres pages, afficher la navigation à gauche
-                    ui.horizontal(|ui| {
-                        // PANEL DE NAVIGATION GAUCHE
-                        egui::Frame::NONE
-                            .fill(egui::Color32::from_rgb(30, 30, 38))
-                            .corner_radius(egui::CornerRadius::same(12))
-                            .inner_margin(egui::Margin::same(16))
-                            .show(ui, |ui| {
-                                ui.set_min_width(250.0);
+                match self.navigation.current_layout() {
+                    PageLayout::Fullscreen => {
+                        // Fullscreen pages (e.g., Landing)
+                        self.navigation.show_current(ctx, ui);
+                    }
+                    PageLayout::WithNavigation => {
+                        // Pages with left navigation
+                        ui.horizontal(|ui| {
+                            // LEFT NAV PANEL
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(30, 30, 38))
+                                .corner_radius(egui::CornerRadius::same(12))
+                                .inner_margin(egui::Margin::same(16))
+                                .show(ui, |ui| {
+                                    ui.set_min_width(250.0);
 
-                                ui.heading("📁 Navigation");
-                                ui.separator();
+                                    ui.heading("📁 Navigation");
+                                    ui.separator();
 
-                                // Boutons de navigation
-                                for page in Navigation::all() {
-                                    let is_current = self.navigation.current_page() == page;
-                                    let button_text = format!("{} {}", page.icon(), page.name());
-                                    
-                                    let button = egui::Button::new(button_text)
-                                        .fill(if is_current {
-                                            egui::Color32::from_rgb(60, 60, 80)
-                                        } else {
-                                            egui::Color32::TRANSPARENT
-                                        });
-                                    
-                                    if ui.add(button).clicked() {
-                                        self.navigation.navigate_to(page);
+                                    // Navigation buttons
+                                    for page in Navigation::all() {
+                                        let is_current = self.navigation.current() == *page;
+
+                                        let button = egui::Button::new(page.name())
+                                            .fill(if is_current {
+                                                egui::Color32::from_rgb(60, 60, 80)
+                                            } else {
+                                                egui::Color32::TRANSPARENT
+                                            });
+
+                                        if ui.add(button).clicked() {
+                                            self.navigation.navigate_to(*page);
+                                        }
                                     }
-                                }
-                            });
+                                });
 
-                        // SÉPARATEUR VISUEL
-                        ui.add_space(16.0);
+                            // VISUAL SEPARATOR
+                            ui.add_space(16.0);
 
-                        // PANEL DE CONTENU PRINCIPAL
-                        egui::Frame::NONE
-                            .fill(egui::Color32::from_rgb(40, 40, 55))
-                            .corner_radius(egui::CornerRadius::same(16))
-                            .inner_margin(egui::Margin::same(20))
-                            .show(ui, |ui| {
-                                // Afficher la page actuelle
-                                self.navigation.show_current_page(ctx, ui);
-                            });
-                    });
+                            // MAIN CONTENT PANEL
+                            egui::Frame::new()
+                                .fill(egui::Color32::from_rgb(40, 40, 55))
+                                .corner_radius(egui::CornerRadius::same(16))
+                                .inner_margin(egui::Margin::same(20))
+                                .show(ui, |ui| {
+                                    self.navigation.show_current(ctx, ui);
+                                });
+                        });
+                    }
                 }
             });
     }
